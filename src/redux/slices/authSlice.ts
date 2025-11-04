@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import { PURGE } from 'redux-persist';
+import { PURGE, REHYDRATE } from 'redux-persist';
 import { User } from '../../types';
 import { getProfile } from '../../services/authService';
 
@@ -77,7 +77,8 @@ const authSlice = createSlice({
       .addCase(PURGE, () => {
         // Reset to initial state when purging (logout)
         return initialState;
-      });
+      })
+      
   },
 });
 

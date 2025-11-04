@@ -7,10 +7,12 @@ import Input from '../../components/common/Input';
 import Button from '../../components/common/Button';
 import ErrorAlert from '../../components/common/ErrorAlert';
 import { useFormSubmit } from '../../hooks/useFormSubmit';
+import { validateEmail, validatePassword } from '../../utils/validators';
 
 const Login: React.FC = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState('user@ludus.code');
+  const [password, setPassword] = useState('User@123');
+  const [errors, setErrors] = useState<{ email: string; password: string }>({ email: '', password: '' });
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { error, isLoading, handleSubmit } = useFormSubmit(
@@ -19,6 +21,17 @@ const Login: React.FC = () => {
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const validationErrors = {
+      email: validateEmail(email) ?? '',
+      password: validatePassword(password) ?? '',
+    };
+
+    setErrors(validationErrors);
+
+    if (Object.values(validationErrors).some(Boolean)) {
+      return;
+    }
+
     try {
       const { user } = await handleSubmit(email, password);
       // Token is set by backend as HTTP-only cookie
@@ -39,16 +52,28 @@ const Login: React.FC = () => {
           id="email"
           type="email"
           value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          onChange={(e) => {
+            setEmail(e.target.value);
+            if (errors.email) {
+              setErrors((prev) => ({ ...prev, email: '' }));
+            }
+          }}
           required
+          error={errors.email}
         />
         <Input
           label="Password"
           id="password"
           type="password"
           value={password}
-          onChange={(e) => setPassword(e.target.value)}
+          onChange={(e) => {
+            setPassword(e.target.value);
+            if (errors.password) {
+              setErrors((prev) => ({ ...prev, password: '' }));
+            }
+          }}
           required
+          error={errors.password}
         />
         <div className="mt-6">
           <Button type="submit" isLoading={isLoading}>

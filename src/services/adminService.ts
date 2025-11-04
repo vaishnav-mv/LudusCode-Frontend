@@ -1,24 +1,48 @@
 import api from './api';
 import { User, Group } from '../types';
 
-export interface PaginatedUsersResponse {
-  users: User[];
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-  };
+export interface PaginationMeta {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
 }
 
-export const getAllUsers = async (page?: number, limit?: number): Promise<User[] | PaginatedUsersResponse> => {
-  const params = new URLSearchParams();
-  if (page) params.append('page', page.toString());
-  if (limit) params.append('limit', limit.toString());
-  
-  const url = params.toString() ? `/admin/users?${params.toString()}` : '/admin/users';
-  const response = await api.get(url);
-  return response.data.data;
+export interface PaginatedUsersResponse {
+  users: User[];
+  pagination: PaginationMeta;
+}
+
+const normalizeUsersResponse = (
+  data: PaginatedUsersResponse | User[],
+  fallbackLimit: number
+): PaginatedUsersResponse => {
+  if (Array.isArray(data)) {
+    return {
+      users: data,
+      pagination: {
+        page: 1,
+        limit: fallbackLimit,
+        total: data.length,
+        totalPages: 1,
+      },
+    };
+  }
+
+  return data;
+};
+
+export const getAllUsers = async (
+  page: number = 1,
+  limit: number = 10
+): Promise<PaginatedUsersResponse> => {
+  const params = new URLSearchParams({
+    page: page.toString(),
+    limit: limit.toString(),
+  });
+
+  const response = await api.get(`/admin/users?${params.toString()}`);
+  return normalizeUsersResponse(response.data.data, limit);
 };
 
 export const getPendingGroups = async (): Promise<Group[]> => {

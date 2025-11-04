@@ -8,8 +8,10 @@ export enum Role {
 export interface User {
     id: string;
     username: string;
+    name: string;
     email: string;
     role: Role;
+    isVerified: boolean;
     createdAt: string;
 }
 

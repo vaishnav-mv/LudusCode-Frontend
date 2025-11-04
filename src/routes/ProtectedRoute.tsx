@@ -23,6 +23,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   const { user, loading, isAuthenticated } = useAppSelector((state) => state.auth);
 
   // Show loading spinner while checking authentication
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-screen bg-primary">
@@ -31,10 +32,11 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     );
   }
 
-  // Redirect to login if not authenticated
+  // Redirect only *after* loading completes
   if (!isAuthenticated || !user) {
     return <Navigate to={redirectTo} replace />;
   }
+
 
   // Check if user has required role
   if (!allowedRoles.includes(user.role)) {

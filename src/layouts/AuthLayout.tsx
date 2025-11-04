@@ -1,7 +1,6 @@
 
 import React from 'react';
 import { Outlet } from 'react-router-dom';
-// Fix: Imported the `Card` component to resolve 'Cannot find name Card' error.
 import Card from '../components/common/Card';
 
 const AuthLayout: React.FC = () => {

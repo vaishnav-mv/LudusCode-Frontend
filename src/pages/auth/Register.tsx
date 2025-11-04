@@ -5,11 +5,13 @@ import Button from '../../components/common/Button';
 import ErrorAlert from '../../components/common/ErrorAlert';
 import { register } from '../../services/authService';
 import { useFormSubmit } from '../../hooks/useFormSubmit';
+import { validateEmail, validatePassword, validateRequired } from '../../utils/validators';
 
 const Register: React.FC = () => {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [errors, setErrors] = useState({ username: '', email: '', password: '' });
   const navigate = useNavigate();
   const { error, isLoading, handleSubmit } = useFormSubmit(
     (username: string, email: string, password: string) => register(username, email, password)
@@ -17,6 +19,18 @@ const Register: React.FC = () => {
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const validationErrors = {
+      username: validateRequired(username, 'Username') ?? '',
+      email: validateEmail(email) ?? '',
+      password: validatePassword(password) ?? '',
+    };
+
+    setErrors(validationErrors);
+
+    if (Object.values(validationErrors).some(Boolean)) {
+      return;
+    }
+
     try {
       await handleSubmit(username, email, password);
       // Pass email to OTP page to identify user
@@ -36,24 +50,42 @@ const Register: React.FC = () => {
           id="username"
           type="text"
           value={username}
-          onChange={(e) => setUsername(e.target.value)}
+          onChange={(e) => {
+            setUsername(e.target.value);
+            if (errors.username) {
+              setErrors((prev) => ({ ...prev, username: '' }));
+            }
+          }}
           required
+          error={errors.username}
         />
         <Input
           label="Email"
           id="email"
           type="email"
           value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          onChange={(e) => {
+            setEmail(e.target.value);
+            if (errors.email) {
+              setErrors((prev) => ({ ...prev, email: '' }));
+            }
+          }}
           required
+          error={errors.email}
         />
         <Input
           label="Password"
           id="password"
           type="password"
           value={password}
-          onChange={(e) => setPassword(e.target.value)}
+          onChange={(e) => {
+            setPassword(e.target.value);
+            if (errors.password) {
+              setErrors((prev) => ({ ...prev, password: '' }));
+            }
+          }}
           required
+          error={errors.password}
         />
         <div className="mt-6">
           <Button type="submit" isLoading={isLoading}>

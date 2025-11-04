@@ -5,15 +5,27 @@ import Button from '../../components/common/Button';
 import ErrorAlert from '../../components/common/ErrorAlert';
 import { forgotPassword } from '../../services/authService';
 import { useFormSubmit } from '../../hooks/useFormSubmit';
+import { validateEmail } from '../../utils/validators';
 
 const ForgotPassword: React.FC = () => {
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
+  const [errors, setErrors] = useState({ email: '' });
   const navigate = useNavigate();
   const { error, isLoading, handleSubmit } = useFormSubmit(forgotPassword);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const validationErrors = {
+      email: validateEmail(email) ?? '',
+    };
+
+    setErrors(validationErrors);
+
+    if (Object.values(validationErrors).some(Boolean)) {
+      return;
+    }
+
     try {
       const res = await handleSubmit(email);
       setMessage(res.message);
@@ -38,8 +50,14 @@ const ForgotPassword: React.FC = () => {
           id="email"
           type="email"
           value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          onChange={(e) => {
+            setEmail(e.target.value);
+            if (errors.email) {
+              setErrors({ email: '' });
+            }
+          }}
           required
+          error={errors.email}
         />
         <div className="mt-6">
           <Button type="submit" isLoading={isLoading}>
