@@ -3,12 +3,13 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import type { RootState, AppDispatch } from '../../redux/store';
-import type { Group } from '../../models';
+import type { Group } from '../../types';
+import { GroupStatus } from '../../types';
 import { isUserInGroup, createGroup } from '../../services/groupService';
-import { fetchGroups } from '../../redux/slices/groupSlice';
-
+import { fetchGroups, fetchPendingGroups } from '../../redux/slices/groupSlice';
 import { Icon } from '../common/Icons';
 import Skeleton from './Skeleton';
+import StatusBadge from '../common/StatusBadge';
 
 const GroupCardSkeleton: React.FC = () => (
     <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-5 flex flex-col">
@@ -114,23 +115,77 @@ const CreateGroupModal: React.FC<{ isOpen: boolean; onClose: () => void; onCreat
     );
 };
 
+const PendingRequests: React.FC<{ groups: Group[]; isLoading: boolean; searchTerm: string }> = ({ groups, isLoading, searchTerm }) => {
+    if (isLoading) {
+        return (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Skeleton className="h-24 w-full" />
+                <Skeleton className="h-24 w-full" />
+            </div>
+        );
+    }
+
+    const filtered = groups.filter(group =>
+        group.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        group.description.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    if (filtered.length === 0) {
+        return (
+            <div className="bg-gray-800/40 border border-gray-700 rounded-lg p-6 text-center text-gray-400">
+                No pending group requests yet.
+            </div>
+        );
+    }
+
+    return (
+        <div className="space-y-4">
+            {filtered.map(group => (
+                <div key={group.id} className="bg-gray-800/50 border border-gray-700 rounded-lg p-5">
+                    <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
+                        <div>
+                            <h3 className="text-xl font-bold text-cyan-400">{group.name}</h3>
+                            <p className="text-gray-400 mt-1">{group.description}</p>
+                        </div>
+                        <StatusBadge status={group.status} />
+                    </div>
+                    {group.status === GroupStatus.Rejected && group.rejectionReason && (
+                        <div className="mt-3 bg-red-950/40 border border-red-700 text-red-300 px-4 py-3 rounded-md">
+                            <p className="text-sm font-semibold">Rejected</p>
+                            <p className="text-sm mt-1">Reason: {group.rejectionReason}</p>
+                        </div>
+                    )}
+                    {group.status === GroupStatus.Pending && (
+                        <p className="mt-3 text-sm text-yellow-300">This group is awaiting admin review.</p>
+                    )}
+                </div>
+            ))}
+        </div>
+    );
+};
+
 const GroupsView: React.FC = () => {
     const navigate = useNavigate();
     const dispatch = useDispatch<AppDispatch>();
     const currentUser = useSelector((state: RootState) => state.auth.user)!;
-    const { groups, listStatus } = useSelector((state: RootState) => state.groups);
+    const { groups, listStatus, pendingGroups, pendingStatus } = useSelector((state: RootState) => state.groups);
     const isLoading = listStatus === 'loading';
+    const isPendingLoading = pendingStatus === 'loading';
 
     const [searchTerm, setSearchTerm] = useState('');
     const [memberships, setMemberships] = useState<Record<string, boolean>>({});
-    const [filter, setFilter] = useState<'all' | 'available' | 'my'>('all');
+    type TabKey = 'all' | 'available' | 'my' | 'pending';
+    const [activeTab, setActiveTab] = useState<TabKey>('all');
     const [isModalOpen, setIsModalOpen] = useState(false);
 
     useEffect(() => {
         if (listStatus === 'idle') {
             dispatch(fetchGroups());
         }
-    }, [dispatch, listStatus]);
+        if (pendingStatus === 'idle') {
+            dispatch(fetchPendingGroups());
+        }
+    }, [dispatch, listStatus, pendingStatus]);
 
     const filteredGroups = useMemo(() => {
         let filtered = groups.filter(group => 
@@ -139,9 +194,9 @@ const GroupsView: React.FC = () => {
             group.topics.some(t => t.toLowerCase().includes(searchTerm.toLowerCase()))
         );
 
-        if (filter === 'available') {
+        if (activeTab === 'available') {
             filtered = filtered.filter(group => !memberships[group.id]);
-        } else if (filter === 'my') {
+        } else if (activeTab === 'my') {
             filtered = filtered.filter(group => 
                 group.members.some(member => member.id === currentUser.id) || 
                 group.leader.id === currentUser.id
@@ -149,7 +204,7 @@ const GroupsView: React.FC = () => {
         }
 
         return filtered;
-    }, [groups, searchTerm, filter, memberships, currentUser.id]);
+    }, [groups, searchTerm, activeTab, memberships, currentUser.id]);
 
     useEffect(() => {
         if (!groups.length) {
@@ -181,7 +236,8 @@ const GroupsView: React.FC = () => {
 
     const handleCreateGroup = async (data: { name: string; description: string; topics: string[] }) => {
         await createGroup(data);
-        dispatch(fetchGroups());
+        await dispatch(fetchGroups());
+        await dispatch(fetchPendingGroups());
     };
 
     return (
@@ -196,10 +252,11 @@ const GroupsView: React.FC = () => {
                 </button>
             </div>
 
-            <div className="flex gap-4 mb-6">
-                <button onClick={() => setFilter('all')} className={`px-4 py-2 rounded ${filter === 'all' ? 'bg-cyan-600' : 'bg-gray-700'}`}>All Groups</button>
-                <button onClick={() => setFilter('available')} className={`px-4 py-2 rounded ${filter === 'available' ? 'bg-cyan-600' : 'bg-gray-700'}`}>Available Groups</button>
-                <button onClick={() => setFilter('my')} className={`px-4 py-2 rounded ${filter === 'my' ? 'bg-cyan-600' : 'bg-gray-700'}`}>My Groups</button>
+            <div className="flex flex-wrap gap-4 mb-6">
+                <button onClick={() => setActiveTab('all')} className={`px-4 py-2 rounded ${activeTab === 'all' ? 'bg-cyan-600' : 'bg-gray-700'}`}>Approved Groups</button>
+                <button onClick={() => setActiveTab('available')} className={`px-4 py-2 rounded ${activeTab === 'available' ? 'bg-cyan-600' : 'bg-gray-700'}`}>Available Groups</button>
+                <button onClick={() => setActiveTab('my')} className={`px-4 py-2 rounded ${activeTab === 'my' ? 'bg-cyan-600' : 'bg-gray-700'}`}>My Groups</button>
+                <button onClick={() => setActiveTab('pending')} className={`px-4 py-2 rounded ${activeTab === 'pending' ? 'bg-yellow-600' : 'bg-gray-700'}`}>My Requests</button>
             </div>
             
             <div className="relative mb-6">
@@ -212,7 +269,13 @@ const GroupsView: React.FC = () => {
                 />
                 <Icon name="search" className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
             </div>
-            {isLoading ? (
+            {activeTab === 'pending' ? (
+                <PendingRequests
+                    groups={pendingGroups}
+                    isLoading={isPendingLoading}
+                    searchTerm={searchTerm}
+                />
+            ) : isLoading ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     <GroupCardSkeleton />
                     <GroupCardSkeleton />

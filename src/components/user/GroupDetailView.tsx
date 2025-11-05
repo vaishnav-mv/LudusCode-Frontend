@@ -4,14 +4,14 @@ import { useSelector, useDispatch } from 'react-redux';
 import { useParams, useNavigate } from 'react-router-dom';
 import type { RootState, AppDispatch } from '../../redux/store';
 import { fetchGroupById } from '../../redux/slices/groupSlice';
-import type { Competition, User } from '../../models';
+import type { Competition, User } from '../../types';
 import { isUserInGroup, joinGroup, leaveGroup } from '../../services/groupService';
 
 import { Icon } from '../common/Icons';
 import GroupChat from './GroupChat';
 // import { getCompetitionsForGroup, createCompetition } from '../../services/competitionService';
 // import type { CreateCompetitionData } from '../../services/competitionService';
-import { CompetitionStatus } from '../../models';
+import { CompetitionStatus } from '../../types';
 import CreateCompetitionModal from './CreateCompetitionModal';
 import Spinner from '../common/Spinner';
 import { formatDistanceToNow } from '../../utils';
@@ -103,7 +103,7 @@ const GroupDetailView: React.FC = () => {
     const handleJoin = async () => {
         if (!groupId) return;
         setIsUpdatingMembership(true);
-        await joinGroup(groupId, user.id);
+        await joinGroup(groupId);
         setIsMember(true);
         setIsUpdatingMembership(false);
     }
@@ -111,7 +111,7 @@ const GroupDetailView: React.FC = () => {
     const handleLeave = async () => {
         if (!groupId) return;
         setIsUpdatingMembership(true);
-        await leaveGroup(groupId, user.id);
+        await leaveGroup(groupId);
         setIsMember(false);
         setIsUpdatingMembership(false);
     }

@@ -80,19 +80,8 @@ api.interceptors.response.use(
     // Handle specific error cases
     if (status === 401 || status === 403) {
       // Authentication/Authorization errors
-      console.warn('[API] Authentication failed, redirecting to login...');
-      
-      // Note: Cookie will be cleared by backend or expire naturally
-      // No need to manually remove since it's HTTP-only
-
-      // Redirect to appropriate login page
-      if (
-        !window.location.pathname.includes('/login') &&
-        !window.location.pathname.includes('/admin/login')
-      ) {
-        const isAdminRoute = window.location.pathname.includes('/admin');
-        window.location.href = isAdminRoute ? '/admin/login' : '/login';
-      }
+      console.warn('[API] Authentication failed');
+      // Redirect is intentionally disabled so feature modules can handle auth failures gracefully.
     } else if (status === 429) {
       // Rate limiting
       console.warn('[API] Rate limit exceeded');

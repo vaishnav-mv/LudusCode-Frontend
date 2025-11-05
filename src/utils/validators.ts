@@ -1,5 +1,5 @@
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const PASSWORD_REGEX = /^(?=.*[A-Za-z])(?=.*\d).+$/;
+export const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+export const PASSWORD_REGEX = /^(?=.*[A-Za-z])(?=.*\d).+$/;
 
 export const validateRequired = (value: string, label: string): string | null => {
   if (!value || !value.trim()) {

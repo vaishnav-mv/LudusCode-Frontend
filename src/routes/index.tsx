@@ -10,7 +10,14 @@ const AppRoutes: React.FC = () => {
   const { user, loading } = useSelector((state: RootState) => state.auth);
 
   const getDefaultRedirect = () => {
-    if (!user) return '/login';
+    if (!user) {
+      const currentPath = window.location.pathname;
+      if (currentPath.startsWith('/admin')) {
+        return '/admin/login';
+      }
+      return '/login';
+    }
+
     if (user.role === 'ADMIN') return '/admin/users';
     return '/dashboard';
   };

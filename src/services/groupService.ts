@@ -1,5 +1,5 @@
 import api from './api';
-import { Group } from '../models';
+import { Group } from '../types';
 
 export const createGroup = async (data: { name: string; description?: string; topics?: string[] }): Promise<Group> => {
   const response = await api.post('/groups', data);
@@ -13,6 +13,11 @@ export const getGroups = async (): Promise<Group[]> => {
 
 export const getMyGroups = async (): Promise<Group[]> => {
   const response = await api.get('/groups/my-groups');
+  return response.data.data;
+};
+
+export const getMyPendingGroups = async (): Promise<Group[]> => {
+  const response = await api.get('/groups/my-groups/pending');
   return response.data.data;
 };
 
@@ -31,12 +36,10 @@ export const isUserInGroup = async (groupId: string, userId: string): Promise<bo
   }
 };
 
-export const joinGroup = async (groupId: string, userId: string): Promise<void> => {
-  const response = await api.post(`/groups/${groupId}/join`);
-  return response.data;
+export const joinGroup = async (groupId: string): Promise<void> => {
+  await api.post(`/groups/${groupId}/join`);
 };
 
-export const leaveGroup = async (groupId: string, userId: string): Promise<void> => {
-  const response = await api.post(`/groups/${groupId}/leave`);
-  return response.data;
+export const leaveGroup = async (groupId: string): Promise<void> => {
+  await api.post(`/groups/${groupId}/leave`);
 };

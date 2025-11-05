@@ -1,11 +1,11 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { Icon } from '../components/common/Icons';
 import type { IconName } from '../components/common/Icons';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState, AppDispatch } from '../redux/store';
 import { fetchUserProfile } from '../redux/slices/authSlice';
-// import ProfileDropdown from '../components/common/ProfileDropdown';
+import ProfileDropdown from '../components/common/ProfileDropdown';
 
 const NavItem: React.FC<{ to: string; icon: IconName; label: string }> = ({ to, icon, label }) => (
   <NavLink
@@ -30,15 +30,26 @@ const MainLayout: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const { user, loading } = useSelector((state: RootState) => state.auth);
   const navigate = useNavigate();
+  const hasAttemptedFetch = useRef(false);
 
   useEffect(() => {
-    if (!user && !loading) {
-      dispatch(fetchUserProfile())
-        .unwrap()
-        .catch(() => {
-          navigate('/login');
-        });
+    // Only fetch profile if user is not already loaded from persisted state
+    // This prevents unnecessary API calls and redirect loops when backend is unavailable
+    if (user || loading || hasAttemptedFetch.current) {
+      return;
     }
+
+    hasAttemptedFetch.current = true;
+
+    dispatch(fetchUserProfile())
+      .unwrap()
+      .catch((error) => {
+        console.warn('Failed to fetch user profile:', error);
+        // Only redirect to login if we're not already on an auth page
+        if (!window.location.pathname.includes('/login')) {
+          navigate('/login');
+        }
+      });
   }, [user, loading, dispatch, navigate]);
 
   if (loading || !user) {
@@ -66,9 +77,9 @@ const MainLayout: React.FC = () => {
             <NavItem to="/wallet" icon="dollar-sign" label="Wallet" />
             <NavItem to="/achievements" icon="award" label="Achievements" />
           </nav>
-          {/* <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4">
             <ProfileDropdown user={user} />
-          </div> */}
+          </div>
         </div>
       </header>
       <main className="flex-1 container mx-auto p-4 md:p-8">
@@ -79,3 +90,6 @@ const MainLayout: React.FC = () => {
 };
 
 export default MainLayout;
+
+
+

@@ -55,7 +55,7 @@ export const approveGroup = async (groupId: string): Promise<Group> => {
   return response.data.data;
 };
 
-export const rejectGroup = async (groupId: string): Promise<Group> => {
-  const response = await api.patch(`/admin/groups/${groupId}/reject`);
+export const rejectGroup = async (groupId: string, reason: string): Promise<Group> => {
+  const response = await api.patch(`/admin/groups/${groupId}/reject`, { reason });
   return response.data.data;
 };

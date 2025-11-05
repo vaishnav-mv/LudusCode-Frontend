@@ -1,91 +1,96 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+
 import Input from '../../components/common/Input';
 import Button from '../../components/common/Button';
 import ErrorAlert from '../../components/common/ErrorAlert';
-import { register } from '../../services/authService';
+import { register as registerUser } from '../../services/authService';
 import { useFormSubmit } from '../../hooks/useFormSubmit';
-import { validateEmail, validatePassword, validateRequired } from '../../utils/validators';
+import { EMAIL_REGEX, PASSWORD_REGEX } from '../../utils/validators';
+
+const registerSchema = z.object({
+  username: z
+    .string()
+    .trim()
+    .min(1, 'Username is required')
+    .max(30, 'Username must be 30 characters or fewer'),
+  email: z
+    .string()
+    .trim()
+    .min(1, 'Email is required')
+    .refine((value) => EMAIL_REGEX.test(value), {
+      message: 'Enter a valid email address',
+    }),
+  password: z
+    .string()
+    .min(8, 'Password must be at least 8 characters')
+    .refine((value) => PASSWORD_REGEX.test(value), {
+      message: 'Password must contain at least one letter and one number',
+    }),
+});
+
+type RegisterFormValues = z.infer<typeof registerSchema>;
 
 const Register: React.FC = () => {
-  const [username, setUsername] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [errors, setErrors] = useState({ username: '', email: '', password: '' });
   const navigate = useNavigate();
-  const { error, isLoading, handleSubmit } = useFormSubmit(
-    (username: string, email: string, password: string) => register(username, email, password)
+  const { error, isLoading, handleSubmit: submitForm } = useFormSubmit(
+    (username: string, email: string, password: string) => registerUser(username, email, password)
   );
 
-  const onSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const validationErrors = {
-      username: validateRequired(username, 'Username') ?? '',
-      email: validateEmail(email) ?? '',
-      password: validatePassword(password) ?? '',
-    };
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<RegisterFormValues>({
+    resolver: zodResolver(registerSchema),
+    defaultValues: {
+      username: '',
+      email: '',
+      password: '',
+    },
+  });
 
-    setErrors(validationErrors);
-
-    if (Object.values(validationErrors).some(Boolean)) {
-      return;
-    }
-
+  const onSubmit = handleSubmit(async ({ username, email, password }) => {
     try {
-      await handleSubmit(username, email, password);
-      // Pass email to OTP page to identify user
+      await submitForm(username, email, password);
       navigate(`/otp-verify?email=${encodeURIComponent(email)}`);
     } catch (err) {
-      // Error is handled by useFormSubmit hook
+      // handled by useFormSubmit
     }
-  };
+  });
 
   return (
     <>
       <h2 className="text-2xl font-bold text-center text-text-primary mb-6">Create Account</h2>
       <ErrorAlert message={error} />
-      <form onSubmit={onSubmit}>
+      <form onSubmit={onSubmit} noValidate>
         <Input
           label="Username"
           id="username"
           type="text"
-          value={username}
-          onChange={(e) => {
-            setUsername(e.target.value);
-            if (errors.username) {
-              setErrors((prev) => ({ ...prev, username: '' }));
-            }
-          }}
-          required
-          error={errors.username}
+          autoComplete="username"
+          {...register('username')}
+          error={errors.username?.message}
         />
         <Input
           label="Email"
           id="email"
           type="email"
-          value={email}
-          onChange={(e) => {
-            setEmail(e.target.value);
-            if (errors.email) {
-              setErrors((prev) => ({ ...prev, email: '' }));
-            }
-          }}
-          required
-          error={errors.email}
+          autoComplete="email"
+          {...register('email')}
+          error={errors.email?.message}
         />
         <Input
           label="Password"
           id="password"
           type="password"
-          value={password}
-          onChange={(e) => {
-            setPassword(e.target.value);
-            if (errors.password) {
-              setErrors((prev) => ({ ...prev, password: '' }));
-            }
-          }}
-          required
-          error={errors.password}
+          autoComplete="new-password"
+          hint="Minimum 8 characters with at least one letter and number"
+          {...register('password')}
+          error={errors.password?.message}
         />
         <div className="mt-6">
           <Button type="submit" isLoading={isLoading}>

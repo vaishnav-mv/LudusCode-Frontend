@@ -1,5 +1,5 @@
 
-import type { ChatMessage, User } from '../models';
+import type { ChatMessage, User } from '../types';
 import { MOCK_USERS } from './mockData';
 
 // This is a simple in-memory store for chat messages, grouped by group ID.

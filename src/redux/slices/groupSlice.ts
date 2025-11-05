@@ -1,24 +1,33 @@
 // redux/slices/groupSlice.ts
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import type { Group } from '../../models';
-import { getGroups, getGroupById } from '../../services/groupService';
+import type { Group } from '../../types';
+import { getGroups, getGroupById, getMyPendingGroups } from '../../services/groupService';
 
 interface GroupState {
   groups: Group[];
+  pendingGroups: Group[];
   selectedGroup: Group | null;
   listStatus: 'idle' | 'loading' | 'succeeded' | 'failed';
   detailStatus: 'idle' | 'loading' | 'succeeded' | 'failed';
+  pendingStatus: 'idle' | 'loading' | 'succeeded' | 'failed';
 }
 
 const initialState: GroupState = {
   groups: [],
+  pendingGroups: [],
   selectedGroup: null,
   listStatus: 'idle',
   detailStatus: 'idle',
+  pendingStatus: 'idle',
 };
 
 export const fetchGroups = createAsyncThunk('groups/fetchGroups', async () => {
   const groups = await getGroups();
+  return groups;
+});
+
+export const fetchPendingGroups = createAsyncThunk('groups/fetchPendingGroups', async () => {
+  const groups = await getMyPendingGroups();
   return groups;
 });
 
@@ -42,6 +51,16 @@ const groupSlice = createSlice({
       })
       .addCase(fetchGroups.rejected, (state) => {
         state.listStatus = 'failed';
+      })
+      .addCase(fetchPendingGroups.pending, (state) => {
+        state.pendingStatus = 'loading';
+      })
+      .addCase(fetchPendingGroups.fulfilled, (state, action) => {
+        state.pendingStatus = 'succeeded';
+        state.pendingGroups = action.payload;
+      })
+      .addCase(fetchPendingGroups.rejected, (state) => {
+        state.pendingStatus = 'failed';
       })
       .addCase(fetchGroupById.pending, (state) => {
         state.detailStatus = 'loading';

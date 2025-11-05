@@ -70,8 +70,10 @@ const authSlice = createSlice({
       })
       .addCase(fetchUserProfile.rejected, (state, action) => {
         state.loading = false;
-        state.user = null;
-        state.isAuthenticated = false; // No valid cookie/session
+        if (!state.isAuthenticated || !state.user) {
+          state.user = null;
+          state.isAuthenticated = false;
+        }
         state.error = action.payload as string;
       })
       .addCase(PURGE, () => {
